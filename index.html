@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>US States, Cuba &amp; Launch Sites — Map Drill</title>
+<style>
+:root{--paper:#e9eef1;--panel:#fff;--sea:#a8c3d6;--land:#fbfaf6;--ink:#10222f;--soft:#4d6578;--rule:#39607c;--hair:#c3ced6;--tgt:#f0a91c;--ok:#1a7048;--okbg:#dcefe4;--no:#a83527;--nobg:#f6e0dc;--chip:#dbe4ea;--chipon:#10222f;--chipink:#fff}
+:root[data-theme=dark]{--paper:#0c151c;--panel:#15212b;--sea:#101d27;--land:#2b3945;--ink:#e3ebf1;--soft:#9fb3c2;--rule:#5b7d96;--hair:#2a3844;--ok:#5cc08d;--okbg:#16332a;--no:#eb8375;--nobg:#3a1f1c;--chip:#1f2d38;--chipon:#e3ebf1;--chipink:#0c151c}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--paper:#0c151c;--panel:#15212b;--sea:#101d27;--land:#2b3945;--ink:#e3ebf1;--soft:#9fb3c2;--rule:#5b7d96;--hair:#2a3844;--ok:#5cc08d;--okbg:#16332a;--no:#eb8375;--nobg:#3a1f1c;--chip:#1f2d38;--chipon:#e3ebf1;--chipink:#0c151c}}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;height:100%;background:var(--paper);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:flex;flex-direction:column;height:100%;max-width:1100px;margin:0 auto;padding:8px 10px;gap:8px}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1{margin:0;font-size:1rem}.tally{margin-left:auto;color:var(--soft);font-size:.85rem}
+.seg{display:flex;background:var(--chip);border-radius:8px;padding:2px;gap:2px}
+.seg button{border:0;background:none;padding:6px 10px;border-radius:6px;font-size:.84rem;cursor:pointer;color:var(--soft)}
+.seg button[aria-pressed=true]{background:var(--chipon);color:var(--chipink);font-weight:500}
+.sheet{flex:1 1 auto;min-height:200px;border:1px solid var(--rule);padding:3px;background:var(--panel);position:relative}
+#stage{height:100%;border:2px solid var(--rule);background:var(--sea);overflow:hidden}
+svg{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.s{fill:var(--land);stroke:var(--rule);stroke-width:.5;stroke-linejoin:round;vector-effect:non-scaling-stroke;cursor:pointer}
+.s:hover{filter:brightness(.93)}
+.s.tgt,.s.sel{fill:var(--tgt)}.s.ok{fill:var(--ok)}.s.no{fill:var(--no)}.s.miss{fill:var(--tgt);stroke:var(--no);stroke-width:2.2}
+.fr{fill:none;stroke:var(--rule);stroke-width:.8;stroke-dasharray:3 2;vector-effect:non-scaling-stroke}
+.zoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:5px}
+.zoom button{width:36px;height:36px;border:1px solid var(--hair);background:var(--panel);color:var(--ink);border-radius:8px;font-size:1.2rem;cursor:pointer}
+.panel{background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;max-height:42%;overflow:auto}
+.ask{margin:0 0 8px;font-weight:600}.sub{display:block;font-weight:400;color:var(--soft);font-size:.82rem}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.opt,.btn{border:1px solid var(--hair);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 10px;font-size:.93rem;cursor:pointer;min-height:42px}
+.opt.ok{background:var(--okbg);border-color:var(--ok)}.opt.no{background:var(--nobg);border-color:var(--no)}
+.btn.primary{background:var(--chipon);color:var(--chipink)}
+.row{display:flex;gap:8px;margin-top:9px;align-items:center;flex-wrap:wrap}
+.msg{margin:8px 0 0;font-size:.9rem}.good{color:var(--ok)}.bad{color:var(--no)}
+ul.sites{margin:6px 0 0;padding-left:18px;font-size:.86rem;color:var(--soft)}
+@media(min-width:900px){.app{display:grid;grid-template-columns:1fr 340px;grid-template-rows:auto 1fr;height:100%}.top{grid-column:1/3}.panel{max-height:none;align-self:start}.opts{grid-template-columns:1fr}}
+</style></head><body><div class="app">
+<div class="top"><h1>US States, Cuba &amp; Launch Sites</h1>
+<div class="seg" id="modes"><button data-m="mc" aria-pressed="true">Name it</button><button data-m="click" aria-pressed="false">Click it</button><button data-m="launch" aria-pressed="false">Launch sites</button></div>
+<span class="tally" id="tally"></span></div>
+<div class="sheet"><div id="stage"></div><div class="zoom"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zr" aria-label="Reset view">⟲</button></div></div>
+<div class="panel" id="panel"></div></div>
+<script>
+const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id);
+const LIST="AL Alabama|AK Alaska|AZ Arizona|AR Arkansas|CA California|CO Colorado|CT Connecticut|DE Delaware|FL Florida|GA Georgia|HI Hawaii|ID Idaho|IL Illinois|IN Indiana|IA Iowa|KS Kansas|KY Kentucky|LA Louisiana|ME Maine|MD Maryland|MA Massachusetts|MI Michigan|MN Minnesota|MS Mississippi|MO Missouri|MT Montana|NE Nebraska|NV Nevada|NH New Hampshire|NJ New Jersey|NM New Mexico|NY New York|NC North Carolina|ND North Dakota|OH Ohio|OK Oklahoma|OR Oregon|PA Pennsylvania|RI Rhode Island|SC South Carolina|SD South Dakota|TN Tennessee|TX Texas|UT Utah|VT Vermont|VA Virginia|WA Washington|WV West Virginia|WI Wisconsin|WY Wyoming|CU Cuba";
+const NAME={},K=[];LIST.split("|").forEach(s=>{NAME[s.slice(0,2)]=s.slice(3);K.push(s.slice(0,2))});
+const LAUNCH={AK:"Pacific Spaceport Complex, Kodiak",CA:"Vandenberg Space Force Base",FL:"Cape Canaveral / Kennedy Space Center",TX:"Starbase (Boca Chica)",VA:"Wallops Flight Facility",NM:"Spaceport America"};
+const VS={};"a -124.7 48.4|wa1 -122.75 49|b -117.03 49|d -116.95 46|c -123.9 46.2|wa2 -124.1 46.9|t -116.05 49|i1 -116.05 48|i2 -114.3 46.6|i3 -114.4 45.5|i4 -113 44.5|u -111.05 44.5|v -111.05 42|q -114.05 42|f -117 42|h -120 42|g -124.2 42|id1 -117 44.3|id2 -116.5 45.5|or1 -124.1 44|or2 -124.5 42.8|m1 -104.05 49|m2 -104.05 45|m3 -111.05 45|w1 -104.05 41|w2 -111.05 41|ut1 -109.05 41|fc -109.05 37|r -114.05 37|co1 -102.05 41|co2 -102.05 37|nm1 -103 37|j -114.6 35|i -120 39|k -114.7 32.7|l -117.1 32.5|ca1 -118.5 34|ca2 -120.6 34.5|ca3 -121.9 36.6|ca4 -122.5 37.8|ca5 -123.8 39.4|ca6 -124.3 40.4|az1 -109.05 31.33|az2 -111.07 31.33|tx1 -103 36.5|nm2 -103 32|nm3 -106.6 32|nm4 -106.5 31.78|nm5 -108.2 31.78|nm6 -108.2 31.33|nd1 -97.2 49|nd2 -96.56 45.94|nd3 -104.05 45.94|sd1 -96.45 43.5|sd1b -96.6 42.5|sd2 -98.5 43|sd3 -104.05 43|ne1 -96.1 41.5|ia4 -95.8 40.6|ne2 -95.3 40|ne3 -102.05 40|ks1 -94.6 39.1|ok2 -94.62 37|mo6 -94.62 36.5|ok3 -94.43 35.4|tx6 -94.48 33.64|tx5 -97.1 33.75|tx4 -98.1 34.15|tx3 -100 34.56|tx2 -100 36.5|artx -94.04 33.55|ar4 -94.04 33|ar5 -94.04 32|txe -93.55 31.2|la6 -93.8 29.7|tx7 -94.7 29.4|tx8 -97 27.8|tx9 -97.4 25.9|tx10 -99.1 26.4|tx11 -100.6 28.9|tx12 -102.4 29.8|tx13 -103.2 29|tx14 -104.5 29.7|mn1 -95.15 49|mn2 -89.6 48|mn3 -92.1 46.7|mn4 -92.9 45.6|mn5 -91.2 43.5|il1 -90.65 42.5|ia2 -90.2 41.8|ia3 -91.4 40.4|mo1 -90.2 38.8|mo2 -89.1 37|mo3 -89.7 36|mo4 -90.4 36|mo5 -90.15 36.5|ar2 -90.3 35|ar3 -91.15 33|la1 -91.6 31|la2 -89.75 31|la3 -89.6 30.2|la4 -89.2 29|la5 -91 29.2|ms1 -88.4 30.35|ms2 -88.4 35|tn1 -85.6 35|tn2 -84.3 35|tn3 -81.7 36.6|tn4 -83.7 36.6|tn5 -89.5 36.5|al1 -85.2 32.9|fl14 -85 31|fl13 -87.6 31|fl12 -87.5 30.3|nc8 -83.1 35|sc1 -82.2 33.9|sc2 -81 32.1|ga1 -81.4 30.7|ga2 -84.9 30.7|fl1 -81.3 29.9|fl2 -80.5 28.5|fl3 -80.1 26.8|fl4 -80.4 25.2|fl5 -81.1 25.2|fl6 -81.8 26.1|fl7 -82.7 27.7|fl8 -82.7 29|fl9 -83.6 29.9|fl10 -85.3 29.7|fl11 -86.5 30.4|nc4 -78.55 33.85|nc5 -79.7 34.8|nc6 -80.9 35.1|nc7 -82.3 35.2|sc3 -80 32.6|sc4 -79 33.4|va6 -75.9 36.55|nc1 -75.5 35.25|nc2 -76.6 34.7|nc3 -78 33.9|ky1 -88.1 37.8|kya -86.5 38|ky2 -85.4 38.7|ky3 -84.8 39.1|ky4 -82.6 38.4|ky5 -82 37.55|va1 -80.3 37.5|va2 -79.5 38.4|md3 -77.7 39.3|md4 -77 38.8|md5 -76.3 38.2|va5 -76 37|oh3 -80.52 40.64|pa9 -80.52 39.72|md1 -79.48 39.72|md2 -79.48 39.2|oh4 -81.7 39.2|pa8 -75.8 39.72|md6 -75.25 38|de2 -75.05 38.45|de1 -75.8 38.45|pa7 -75.4 39.8|de3 -75.1 38.8|nj1 -75.5 39.5|oh2 -80.52 41.98|pa1 -79.76 42.27|pa2 -79.76 42|pa3 -75.35 42|pa4 -74.7 41.35|pa5 -75.2 40.6|pa6 -74.8 40.1|ny10 -74 40.7|nj2 -74.95 38.95|nj3 -74.1 39.7|nj4 -74 40.45|ny2 -79.05 43.25|ny3 -76.2 43.6|ny4 -75 45|ny5 -73.35 45|nyv -73.35 43.6|ny6 -73.25 42.75|ny7 -73.5 42.05|ny8 -73.5 41.3|ny8b -73.65 41|ny9 -73.8 40.85|lp7 -83.5 41.7|lp8 -84.8 41.7|lp9 -86.8 41.76|oh1 -82.7 41.5|il2 -87.8 42.5|il3 -87.5 41.7|il4 -87.53 39.3|wi1 -90.4 46.6|wi2 -87.6 45.1|wi3 -87.3 44.7|wi4 -87.9 43|up1 -88 47.4|up2 -84.9 46.5|up3 -85 45.9|up4 -87 45.7|lp1 -85 45.8|lp2 -83.4 45.2|lp3 -83.3 44.2|lp4 -82.6 43.9|lp5 -82.5 43|lp6 -83.1 42|lp10 -86.3 43.5|lp11 -86.5 44.7|lp12 -85.5 45.3|vt1 -71.5 45|vt2 -72.3 43.5|vt3 -72.5 42.73|nh1 -71.08 45.3|nh2 -70.7 43.1|nh3 -70.85 42.87|me1 -70 46.7|me2 -69.2 47.45|me3 -67.8 47.07|me4 -67.8 45.7|me5 -67 44.8|me6 -68.5 44.3|me7 -70.2 43.6|ma1 -70.6 42.7|ma2 -71 42.3|ma3 -70.5 41.9|ma4 -70 42.05|ma5 -70 41.65|ma6 -70.7 41.5|ma7 -71.15 41.5|ri1 -71.8 42.02|ri2 -71.38 42.02|ri3 -71.45 41.38|ri4 -71.86 41.32|ct1 -72.9 41.25|li1 -74 40.6|li2 -73 40.95|li3 -71.9 41.05|li4 -72.4 40.85|li5 -73.5 40.58|cu1 -84.95 21.9|cu2 -84.2 22.65|cu3 -83 23.05|cu4 -81.8 23|cu5 -80.4 23.1|cu6 -79 22.5|cu7 -77.5 21.8|cu8 -76 21.2|cu9 -74.2 20.3|cu10 -74.5 20|cu11 -76 19.9|cu12 -77.5 19.9|cu13 -78.2 20.7|cu14 -79.8 21.6|cu15 -81.5 22.2|cu16 -83 22.2|cu17 -84.2 21.8|ak1 -141 69.6|ak2 -141 60.3|ak3 -137.5 58.9|ak4 -130 56|ak5 -130.8 54.8|ak6 -134 56.2|ak7 -136.5 58.3|ak8 -140 59.6|ak9 -144 60|ak10 -148 60.5|ak11 -151.5 59.2|ak12 -154 57.8|ak13 -157.5 56.4|ak14 -160.5 55.3|ak15 -164.8 54.5|ak16 -162.5 55.9|ak17 -158.5 57.2|ak18 -157.8 58.7|ak19 -162 58.7|ak20 -162.5 60.1|ak21 -165 62.3|ak22 -161 64.4|ak23 -166 64.6|ak24 -168 65.6|ak25 -163 66.5|ak26 -162 67.5|ak27 -166.5 68.3|ak28 -163 69.5|ak29 -156.5 71.3|hi1 -155.9 20.25|hi2 -155 19.9|hi3 -154.8 19.5|hi4 -155.6 18.95|hi5 -156.05 19.7|hi6 -156.7 20.95|hi7 -156 20.8|hi8 -156.4 20.6|hi9 -158.25 21.55|hi10 -157.7 21.3|hi11 -158.1 21.3|hi12 -159.8 22.2|hi13 -159.3 22.2|hi14 -159.4 21.9|hi15 -159.75 21.95".split("|").forEach(s=>{const p=s.split(" ");VS[p[0]]=[+p[1],+p[2]]});
+const R="WA:a wa1 b d c wa2;OR:c d id2 id1 f h g or2 or1;CA:g h i j k l ca1 ca2 ca3 ca4 ca5 ca6;NV:h f q r j i;ID:b t i1 i2 i3 i4 u v q f id1 id2 d;MT:t m1 m2 m3 u i4 i3 i2 i1;WY:m3 m2 sd3 w1 w2 v u;UT:q v w2 ut1 fc r;CO:ut1 w1 co1 ne3 co2 nm1 fc;AZ:r fc az1 az2 k j;NM:fc nm1 tx1 nm2 nm3 nm4 nm5 nm6 az1;ND:m1 nd1 nd2 nd3;SD:nd3 nd2 sd1 sd1b sd2 sd3 m2;NE:sd3 sd2 sd1b ne1 ia4 ne2 ne3 co1 w1;KS:ne3 ne2 ks1 ok2 co2;OK:nm1 co2 ok2 mo6 ok3 tx6 tx5 tx4 tx3 tx2 tx1;TX:tx1 tx2 tx3 tx4 tx5 tx6 artx ar4 ar5 txe la6 tx7 tx8 tx9 tx10 tx11 tx12 tx13 tx14 nm4 nm3 nm2;MN:nd1 mn1 mn2 mn3 mn4 mn5 sd1 nd2;IA:sd1 mn5 il1 ia2 ia3 ia4 ne1 sd1b;MO:ia4 ia3 mo1 mo2 mo3 mo4 mo5 mo6 ok2 ks1 ne2;AR:mo6 mo5 mo4 mo3 ar2 ar3 ar4 artx tx6 ok3;LA:ar4 ar3 la1 la2 la3 la4 la5 la6 txe ar5;MS:ar3 la1 la2 la3 ms1 ms2 ar2;TN:tn5 mo3 ar2 ms2 tn1 tn2 tn3 tn4;AL:tn1 al1 fl14 fl13 fl12 ms1 ms2;GA:tn1 tn2 nc8 sc1 sc2 ga1 ga2 fl14 al1;FL:ga1 fl1 fl2 fl3 fl4 fl5 fl6 fl7 fl8 fl9 fl10 fl11 fl12 fl13 fl14 ga2;SC:nc4 nc5 nc6 nc7 nc8 sc1 sc2 sc3 sc4;NC:tn2 tn3 va6 nc1 nc2 nc3 nc4 nc5 nc6 nc7 nc8;VA:tn4 ky5 va1 va2 md3 md4 md5 va5 va6 tn3;KY:mo2 ky1 kya ky2 ky3 ky4 ky5 tn4 tn5;WV:oh3 pa9 md1 md2 md3 va2 va1 ky5 ky4 oh4;MD:pa8 md1 md2 md3 md4 md5 md6 de2 de1;DE:pa7 pa8 de1 de2 de3 nj1;PA:oh2 pa1 pa2 pa3 pa4 pa5 pa6 pa7 pa8 md1 pa9 oh3;NJ:ny10 pa4 pa5 pa6 pa7 nj1 nj2 nj3 nj4;NY:pa1 ny2 ny3 ny4 ny5 nyv ny6 ny7 ny8 ny8b ny9 ny10 pa4 pa3 pa2/li1 li2 li3 li4 li5;OH:lp8 lp7 oh1 oh2 oh3 oh4 ky4 ky3;IN:il3 lp9 lp8 ky3 ky2 kya ky1 il4;IL:il1 il2 il3 il4 ky1 mo2 mo1 ia3 ia2;WI:mn3 wi1 wi2 wi3 wi4 il2 il1 mn5 mn4;MI:wi1 up1 up2 up3 up4 wi2/lp1 lp2 lp3 lp4 lp5 lp6 lp7 lp8 lp9 lp10 lp11 lp12;VT:ny5 vt1 vt2 vt3 ny6 nyv;NH:vt1 nh1 nh2 nh3 vt3 vt2;ME:nh1 me1 me2 me3 me4 me5 me6 me7 nh2;MA:ny6 vt3 nh3 ma1 ma2 ma3 ma4 ma5 ma6 ma7 ri2 ri1 ny7;RI:ri1 ri2 ma7 ri3 ri4;CT:ny7 ri1 ri4 ct1 ny8b ny8;CU:cu1 cu2 cu3 cu4 cu5 cu6 cu7 cu8 cu9 cu10 cu11 cu12 cu13 cu14 cu15 cu16 cu17;AK:"+Array.from({length:29},(_,n)=>"ak"+(n+1)).join(" ")+";HI:hi1 hi2 hi3 hi4 hi5/hi6 hi7 hi8/hi9 hi10 hi11/hi12 hi13 hi14 hi15";
+function P(n){const[x,y]=VS[n];if(n.startsWith("ak"))return[.6+((x+152)*.5+8)*.45,22.2+(71.5-y)*.45];if(n.startsWith("hi"))return[10.2+(x+160)*.9,25.6+(23-y)*.9];return[(x+125)*.79,50-y]}
+const SH={},CEN={};
+R.split(";").forEach(s=>{const k=s.slice(0,2);let sx=0,sy=0,c=0;SH[k]=s.slice(3).split("/").map(r=>"M"+r.split(" ").map(n=>{const p=P(n);sx+=p[0];sy+=p[1];c++;return p[0].toFixed(2)+" "+p[1].toFixed(2)}).join("L")+"Z").join("");CEN[k]=[sx/c,sy/c]});
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e};
+const V0=[-.5,-.5,47,31.5];let vb=V0.slice(),moved=false;
+const svg=el("svg",{viewBox:V0.join(" "),role:"img","aria-label":"Map of the US states and Cuba"});$("stage").append(svg);
+svg.append(el("rect",{x:.3,y:21.8,width:9.4,height:8.7,class:"fr"}),el("rect",{x:10,y:25.3,width:5.4,height:5.2,class:"fr"}));
+const paths={};
+K.forEach(k=>{const p=el("path",{d:SH[k],class:"s","data-k":k});p.addEventListener("click",()=>{if(!moved)pick(k)});svg.append(p);paths[k]=p});
+function setVB(){svg.setAttribute("viewBox",vb.map(n=>n.toFixed(2)).join(" "))}
+function zoom(f,cx,cy){const[x,y,w,h]=vb;cx=cx??x+w/2;cy=cy??y+h/2;const nw=Math.min(47,Math.max(4,w*f)),nh=nw*h/w;vb=[cx-(cx-x)*nw/w,cy-(cy-y)*nh/h,nw,nh];setVB()}
+$("zi").onclick=()=>zoom(.7);$("zo").onclick=()=>zoom(1.4);$("zr").onclick=()=>{vb=V0.slice();setVB()};
+svg.addEventListener("wheel",e=>{e.preventDefault();const r=svg.getBoundingClientRect(),s=Math.max(vb[2]/r.width,vb[3]/r.height);zoom(e.deltaY<0?.85:1.18,vb[0]+(e.clientX-r.left)*s,vb[1]+(e.clientY-r.top)*s)},{passive:false});
+let dn=null;svg.addEventListener("pointerdown",e=>{dn={x:e.clientX,y:e.clientY,vb:vb.slice()};moved=false});
+addEventListener("pointermove",e=>{if(!dn)return;const dx=e.clientX-dn.x,dy=e.clientY-dn.y;if(Math.hypot(dx,dy)>5)moved=true;if(!moved)return;const r=svg.getBoundingClientRect(),s=Math.max(dn.vb[2]/r.width,dn.vb[3]/r.height);vb=[dn.vb[0]-dx*s,dn.vb[1]-dy*s,dn.vb[2],dn.vb[3]];setVB()});
+addEventListener("pointerup",()=>{dn=null;setTimeout(()=>moved=false,0)});
+/* ---- quiz ---- */
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const fresh=()=>({left:shuffle(K.slice()),ok:new Set(),miss:new Set(),first:0});
+let mode="mc",cur=null,done=false,sel=new Set(),checked=false,tm=0;
+const ST={mc:fresh(),click:fresh(),launch:{t:0,r:0}};
+const clear=()=>K.forEach(k=>paths[k].setAttribute("class","s"));
+function tally(){const s=ST[mode];$("tally").textContent=mode==="launch"?(s.t?`Perfect ${s.r} of ${s.t} tries`:""):`Done ${s.ok.size}/${K.length}`}
+function opts(t){const[x,y]=CEN[t];return shuffle([t,...shuffle(K.filter(k=>k!==t).sort((a,b)=>Math.hypot(CEN[a][0]-x,CEN[a][1]-y)-Math.hypot(CEN[b][0]-x,CEN[b][1]-y)).slice(0,7)).slice(0,3)])}
+function next(){clearTimeout(tm);clear();done=false;checked=false;sel.clear();tally();const P_=$("panel");
+ if(mode==="launch"){P_.innerHTML=`<p class="ask">Which states have space launch capability?<span class="sub">Tap every state you think qualifies, then press Check. Alaska and Hawaii are in the inset at bottom left.</span></p><div class="row"><button class="btn primary" id="chk">Check</button><button class="btn" id="clr">Clear</button></div><div id="res"></div>`;$("chk").onclick=check;$("clr").onclick=next;return}
+ const s=ST[mode];if(!s.left.length)return complete(s);
+ cur=s.left.pop();
+ if(mode==="mc"){paths[cur].classList.add("tgt");P_.innerHTML=`<p class="ask">What is the highlighted area?<span class="sub">${s.left.length+1} left</span></p><div class="opts">${opts(cur).map(k=>`<button class="opt" data-k="${k}">${NAME[k]}</button>`).join("")}</div><div id="res"></div>`;
+  P_.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{if(done)return;const ok=b.dataset.k===cur;P_.querySelectorAll(".opt").forEach(o=>{if(o.dataset.k===cur)o.classList.add("ok")});b.classList.add(ok?"ok":"no");answer(ok)})}
+ else P_.innerHTML=`<p class="ask">Find: ${NAME[cur]}<span class="sub">Tap it on the map. ${s.left.length+1} left.</span></p><div id="res"></div>`}
+function answer(ok){done=true;const s=ST[mode];
+ if(ok){s.ok.add(cur);if(!s.miss.has(cur))s.first++}else{s.miss.add(cur);s.left.splice(Math.max(0,s.left.length-3),0,cur)}
+ tally();const site=LAUNCH[cur]?" 🚀 Launch site: "+LAUNCH[cur]+".":"";
+ $("res").innerHTML=ok?`<p class="msg good">Correct!${site}</p>`:`<p class="msg bad">It was ${NAME[cur]}. You'll see it again soon.${site}</p><div class="row"><button class="btn primary" id="nx">Next</button></div>`;
+ if(ok)tm=setTimeout(next,LAUNCH[cur]?1400:800);else $("nx").onclick=next}
+function complete(s){clear();const n=K.length;$("panel").innerHTML=`<p class="ask">All ${n} done! 🎉<span class="sub">${s.first} of ${n} right on the first try.</span></p>${s.miss.size?`<p class="msg">Took more than one try: ${[...s.miss].map(k=>NAME[k]).join(", ")}.</p>`:`<p class="msg good">A perfect run with no misses.</p>`}<div class="row"><button class="btn primary" id="again">Start over</button></div>`;$("again").onclick=()=>{ST[mode]=fresh();next()}}
+function pick(k){
+ if(mode==="launch"){if(checked)return;sel.has(k)?sel.delete(k):sel.add(k);paths[k].classList.toggle("sel",sel.has(k))}
+ else if(mode==="click"&&!done){const ok=k===cur;paths[k].classList.add(ok?"ok":"no");if(!ok)paths[cur].classList.add("tgt");answer(ok)}}
+function check(){if(checked)return;checked=true;let hit=0,extra=0;
+ K.forEach(k=>{const L=k in LAUNCH,S=sel.has(k);paths[k].setAttribute("class","s"+(L&&S?" ok":L?" miss":S?" no":""));L&&S&&hit++;!L&&S&&extra++});
+ const perfect=hit===6&&!extra,s=ST.launch;s.t++;perfect&&s.r++;tally();
+ $("res").innerHTML=`<p class="msg ${perfect?"good":"bad"}">${perfect?"Perfect! ":""}${hit} of 6 found${extra?`, ${extra} wrong pick${extra>1?"s":""} (red)`:""}.${hit<6?" Missed ones are outlined in red.":""}</p><ul class="sites">${Object.keys(LAUNCH).map(k=>`<li><b>${NAME[k]}</b> — ${LAUNCH[k]}</li>`).join("")}</ul><div class="row"><button class="btn primary" id="nx">Try again</button></div>`;$("nx").onclick=next}
+$("modes").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;$("modes").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));next()};
+next();
+</script></body></html>
